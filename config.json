@@ -1,0 +1,23 @@
+{
+    "camera": {
+        "os": {
+            "Window":{
+                "dev": 0,
+                "cap": 0
+            },
+            "Linux":{
+                "dev": "/dev/video0",
+                "cap": 200
+            }
+        },
+        "roi": {
+            "width":300,
+            "height":300
+        }
+    },
+    "view": {
+        "roi": false,
+        "fps": true
+    },
+    "distance": 0.4
+}
