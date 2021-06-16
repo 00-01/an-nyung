@@ -3,16 +3,15 @@ import json
 import os
 import platform
 import sys
-import threading
-import face_recognition as fr
 
 import cv2
+import face_recognition as fr
 import numpy as np
 import qimage2ndarray as qimage2ndarray
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
-from PyQt5.QtGui import QPixmap, QImage, QScreen, qRed, qGreen, qBlue
-from PyQt5.QtWidgets import QDialog, QMessageBox, QApplication, QVBoxLayout, QWidget, QMainWindow
+from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtWidgets import QMessageBox, QApplication, QWidget, QMainWindow
 from PyQt5.uic import loadUi
 
 from face.mill_faceDB import access_db
@@ -25,7 +24,7 @@ class layout_main(QMainWindow):
         self.layout = QtWidgets.QGridLayout()
         self.setCentralWidget(self.window)
         self.window.setLayout(self.layout)
-        self.setFixedSize(640, 480)
+
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         # 처음시작
@@ -35,8 +34,6 @@ class layout_main(QMainWindow):
 
         self.cam_num = 0
         self.cam_cap = 0
-
-
 
         self.cam_dev = 0
         self.cam_cap = 0
@@ -63,8 +60,6 @@ class layout_main(QMainWindow):
                 self.cam_cap = setting["camera"]["os"][s_os]["cap"]
                 break
 
-
-
         # ROI size
         self.width = setting["camera"]["roi"]["width"]
         self.height = setting["camera"]["roi"]["height"]
@@ -75,7 +70,6 @@ class layout_main(QMainWindow):
         self.viewFPS = setting["view"]["fps"]
 
         pass
-
 
     def move_start(self):
         self.layout.addWidget(layout_start(self), 0, 0)
@@ -104,6 +98,7 @@ class layout_start(QWidget):
         self.deleteLater()
         self.parent.move_recognition()
 
+
 class layout_capture(QWidget):
     def __init__(self, parent):
         super(layout_capture, self).__init__(parent)
@@ -117,20 +112,7 @@ class layout_capture(QWidget):
         self.take_photo.start()
         self.take_photo.ImageUpdate.connect(self.ImageUpdateSlot)
 
-
-
-        # config json file read
-        with open('config.json') as json_file:
-            setting = json.load(json_file)
-
-        # ROI size
-        self.width = setting["camera"]["roi"]["width"]
-        self.height = setting["camera"]["roi"]["height"]
-        self.cap_size = (self.width, self.height)
-
-
     def click_save(self):
-
         if self.et_name.text() == "":
             msg = QMessageBox()
             msg.setWindowFlag(Qt.WindowStaysOnTopHint)
@@ -140,13 +122,32 @@ class layout_capture(QWidget):
             if x == QMessageBox.Yes:
                 return
 
-
         self.take_photo.stop()
         # self.imgLabel.pixmap().save("tmp.jpg")
 
         msg = QMessageBox()
         msg.setWindowFlag(Qt.WindowStaysOnTopHint)
-        msg.setIconPixmap(QPixmap(self.imgLabel.pixmap()))
+
+        #메세지에 띄울 사각테두리 체크된 이미지 처리
+        tmp1 = QImage.copy(self.imgLabel.pixmap().toImage())
+        frame1 = qimage2ndarray.rgb_view(tmp1)
+        frame2 = cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB)
+        face_crop = fr.face_locations(frame2)
+
+        if len(face_crop) != 1:
+            print("인식못했거나 여러개 인식됨")
+            self.take_photo.start()
+            return
+        face_crop = face_crop[0]
+        tmp1 = np.copy(frame1)
+        cv2.rectangle(tmp1,
+                      (face_crop[3], face_crop[0]),
+                      (face_crop[1], face_crop[2]),
+                      # (100, 100), (300, 300),
+                      (0, 0, 255), 2)
+
+        # msg.setIconPixmap(self.imgLabel.pixmap())
+        msg.setIconPixmap(QPixmap.fromImage(QImage(tmp1.data, tmp1.shape[1], tmp1.shape[0], QImage.Format_RGB888)))
         msg.setText('저장 하시겠습니까?')
         msg.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
         x = msg.exec_()
@@ -157,12 +158,11 @@ class layout_capture(QWidget):
             tmp = self.imgLabel.pixmap().toImage()
             frame = qimage2ndarray.rgb_view(tmp)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            face_crop = fr.face_locations(frame)
-            frame = frame[face_crop[0][0]:face_crop[0][2], face_crop[0][3]:face_crop[0][1]]
+
+            frame = frame[face_crop[0]:face_crop[2], face_crop[3]:face_crop[1]]
             if not os.path.isdir("tmp"):
                 os.mkdir("tmp")
             cv2.imwrite(captured_img, frame)
-
 
             _, _, col, error_col = access_db()
             with open(captured_img, "rb") as data:
@@ -173,14 +173,16 @@ class layout_capture(QWidget):
                 data = {'name': name, 'id': id.tolist(), 'photo': photo}
                 col.insert_one(data)
                 print('저장 완료!! : ', name)
-                self.take_photo.start()
+
             except IndexError:
                 error_col.insert_one({'name': name})
                 os.remove(captured_img)
                 print('warning! face not detected! : ', name)
             # client.close()
-        else: pass
-
+        else:
+            pass
+        # capture restart
+        self.take_photo.start()
 
     def click_back(self):
         self.take_photo.stop()
@@ -192,9 +194,9 @@ class layout_capture(QWidget):
         self.imgLabel.setScaledContents(True)
 
 
-
 class Take_photo(QThread):
     ImageUpdate = pyqtSignal(QImage)
+
     def run(self):
         self.ThreadActive = True
 
@@ -207,9 +209,9 @@ class Take_photo(QThread):
                 cam_cap = setting["camera"]["os"][s_os]["cap"]
                 break
 
-        cap = cv2.VideoCapture(cam_num, cam_cap)
+        self.cap = cv2.VideoCapture(cam_num, cam_cap)
         while self.ThreadActive:
-            ret, frame = cap.read()
+            ret, frame = self.cap.read()
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = cv2.flip(frame, 1)
             img = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
@@ -217,9 +219,8 @@ class Take_photo(QThread):
 
     def stop(self):
         self.ThreadActive = False
+        # self.cap.release()
         self.quit()
-
-
 
 
 class layout_recognition(QWidget):
@@ -230,19 +231,14 @@ class layout_recognition(QWidget):
 
         self.btn_back.clicked.connect(self.click_back)
 
-
     def click_back(self):
         self.deleteLater()
         self.parent.move_start()
 
 
 if __name__ == '__main__':
-
     app = QApplication(sys.argv)
     myWindow = layout_main()
 
     myWindow.show()
     app.exec_()
-
-
-
