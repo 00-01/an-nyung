@@ -122,7 +122,7 @@ class layout_capture(QWidget):
             if x == QMessageBox.Yes:
                 return
 
-        self.take_photo.stop()
+        self.take_photo.terminate()
         # self.imgLabel.pixmap().save("tmp.jpg")
 
         msg = QMessageBox()
@@ -176,7 +176,7 @@ class layout_capture(QWidget):
 
             except IndexError:
                 error_col.insert_one({'name': name})
-                os.remove(captured_img)
+                # os.remove(captured_img)
                 print('warning! face not detected! : ', name)
             # client.close()
         else:
@@ -200,27 +200,13 @@ class Take_photo(QThread):
     def run(self):
         self.ThreadActive = True
 
-        with open('config.json') as json_file:
-            setting = json.load(json_file)
-
-        for s_os in setting["camera"]["os"]:
-            if s_os in platform.platform():
-                cam_num = setting["camera"]["os"][s_os]["dev"]
-                cam_cap = setting["camera"]["os"][s_os]["cap"]
-                break
-
-        self.cap = cv2.VideoCapture(cam_num, cam_cap)
         while self.ThreadActive:
-            ret, frame = self.cap.read()
+            ret, frame = cap.read()
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = cv2.flip(frame, 1)
             img = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
             self.ImageUpdate.emit(img)
 
-    def stop(self):
-        self.ThreadActive = False
-        # self.cap.release()
-        self.quit()
 
 
 class layout_recognition(QWidget):
@@ -234,6 +220,19 @@ class layout_recognition(QWidget):
     def click_back(self):
         self.deleteLater()
         self.parent.move_start()
+
+
+
+with open('config.json') as json_file:
+    setting = json.load(json_file)
+
+for s_os in setting["camera"]["os"]:
+    if s_os in platform.platform():
+        cam_num = setting["camera"]["os"][s_os]["dev"]
+        cam_cap = setting["camera"]["os"][s_os]["cap"]
+        break
+
+cap = cv2.VideoCapture(cam_num, cam_cap)
 
 
 if __name__ == '__main__':
