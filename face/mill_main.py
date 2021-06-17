@@ -10,14 +10,14 @@ from multiprocessing import Process, Queue
 import cv2
 import face_recognition as fr
 import numpy as np
-import qimage2ndarray as qimage2ndarray
+import qimage2ndarray
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtWidgets import QMessageBox, QApplication, QWidget, QMainWindow
 from PyQt5.uic import loadUi
 
-from face.mill_faceDB import access_db
+from mill_faceDB import access_db
 
 
 class layout_main(QMainWindow):
@@ -297,7 +297,6 @@ class takeRecognition(QThread):
 
 
 
-
 with open('config.json') as json_file:
     setting = json.load(json_file)
 
@@ -349,3 +348,7 @@ if __name__ == '__main__':
 
     myWindow.show()
     app.exec_()
+
+
+    for process in pro_list:
+        process.kill()
