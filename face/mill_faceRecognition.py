@@ -1,13 +1,16 @@
 import datetime
+import json
 import os
+import platform
 import threading
 import cv2
 import tkinter as tk
 import numpy as np
 import qimage2ndarray
-from PIL import ImageTk, Image
+from PIL import ImageTk
+from PIL import Image
 import face_recognition as fr
-from face.mill_faceDB import access_db
+from mill_faceDB import access_db
 
 
 class layout_controller(tk.Tk):
@@ -61,6 +64,11 @@ class layout_faceCapture(tk.Frame):
         threading.Thread(target=self.ThreadCapture.run, args=(self,)).start()
 
     def click_save(self):
+
+        #이름 설정 안했을 경우 취소
+        if len(self.name.get()) == 0:
+            return
+
         #이미지가져옴>쓰레드 종료>메세지박스>확인,취소>쓰레드재시작
         ret, frame = cam.read()
         
@@ -118,7 +126,11 @@ class layout_faceCapture(tk.Frame):
         #촬영 쓰레드 재시작
         self.ThreadCapture = ThreadCapture()
         threading.Thread(target=self.ThreadCapture.run, args=(self,)).start()
-        
+
+        #name widget text 리셋
+        self.name.delete(0, 'end')
+
+
     def click_back(self):
         self.ThreadCapture.terminate()
         self.master.switch_frame(layout_start)
@@ -192,8 +204,18 @@ class layout_faceRecognition(tk.Frame):
 
 
 
+
+with open('config.json') as json_file:
+    setting = json.load(json_file)
+
+for s_os in setting["camera"]["os"]:
+    if s_os in platform.platform():
+        cam_num = setting["camera"]["os"][s_os]["dev"]
+        cam_cap = setting["camera"]["os"][s_os]["cap"]
+        break
+
+cam = cv2.VideoCapture(cam_num, cam_cap)
 #카메라 전역변수
-cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 if __name__ == "__main__":
     app = layout_controller()
