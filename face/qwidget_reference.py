@@ -1,7 +1,8 @@
 import sys
+
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QRadioButton, QStackedWidget, \
-                            QVBoxLayout, QHBoxLayout
-from PyQt5.QtCore import Qt
+    QVBoxLayout, QHBoxLayout
+
 
 class WidgetButtons(QWidget):
     def __init__(self):
@@ -14,6 +15,7 @@ class WidgetButtons(QWidget):
 
         self.setLayout(layout)
 
+
 class WidgetLineEdits(QWidget):
     def __init__(self):
         super().__init__()
@@ -24,6 +26,7 @@ class WidgetLineEdits(QWidget):
             layout.addWidget(QLineEdit(f'LineEdit #{i}'))
 
         self.setLayout(layout)
+
 
 class WidgetRadioButtons(QWidget):
     def __init__(self):
@@ -36,6 +39,7 @@ class WidgetRadioButtons(QWidget):
 
         self.setLayout(layout)
 
+
 class AppDemo(QWidget):
     def __init__(self):
         super().__init__()
@@ -43,9 +47,9 @@ class AppDemo(QWidget):
         mainLayout = QVBoxLayout()
 
         self.stackedWidget = QStackedWidget()
-        self.stackedWidget.addWidget(WidgetButtons()) # index 0
-        self.stackedWidget.addWidget(WidgetLineEdits()) # index 1
-        self.stackedWidget.addWidget(WidgetRadioButtons()) # index 2
+        self.stackedWidget.addWidget(WidgetButtons())  # index 0
+        self.stackedWidget.addWidget(WidgetLineEdits())  # index 1
+        self.stackedWidget.addWidget(WidgetRadioButtons())  # index 2
 
         buttonPrevious = QPushButton('Previous')
         buttonPrevious.clicked.connect(self.previousWidget)
@@ -66,6 +70,7 @@ class AppDemo(QWidget):
 
     def previousWidget(self):
         self.stackedWidget.setCurrentIndex((self.stackedWidget.currentIndex() - 1) % 3)
+
 
 app = QApplication(sys.argv)
 demo = AppDemo()

@@ -29,11 +29,11 @@ class Main(QDialog):
         print(f'{id} has logged in')
 
         widget.addWidget(Face_Recognition())
-        widget.setCurrentIndex(widget.currentIndex()+1)
+        widget.setCurrentIndex(widget.currentIndex() + 1)
 
     def create(self):
         widget.addWidget(Signup())
-        widget.setCurrentIndex(widget.currentIndex()+1)
+        widget.setCurrentIndex(widget.currentIndex() + 1)
 
 
 class Signup(QDialog):
@@ -51,7 +51,7 @@ class Signup(QDialog):
             print(f'{id} id created!!')
 
             widget.addWidget(Main())
-            widget.setCurrentIndex(widget.currentIndex()+1)
+            widget.setCurrentIndex(widget.currentIndex() + 1)
 
 
 cam_num = '/dev/video0'
@@ -59,6 +59,8 @@ cap = cv2.VideoCapture(cam_num, cv2.CAP_V4L2)
 distance = 0.35
 path = 'new/'
 ext = '.jpg'
+
+
 class Face_Recognition(QDialog):
     def __init__(self):
         super(Face_Recognition, self).__init__()
@@ -76,10 +78,12 @@ class Face_Recognition(QDialog):
     def add_new_id(self):
         self.run.stop()
         widget.addWidget(Save())
-        widget.setCurrentIndex(widget.currentIndex()+1)
+        widget.setCurrentIndex(widget.currentIndex() + 1)
+
 
 class Run_Camera(QThread):
     ImageUpdate = pyqtSignal(QImage)
+
     def run(self):
         _, _, col, error_col = access_db()
         n = list(col.find({}))
@@ -102,7 +106,7 @@ class Run_Camera(QThread):
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
                 cv2.putText(frame, name, (left - 1, bottom + 24), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 0, 0), 1)
                 print('name : ', name)
-            # calculate fps
+                # calculate fps
                 seconds = time() - s
                 fps = 1 / seconds
                 fps = ("%.2f" % fps)
@@ -127,13 +131,13 @@ class Save(QDialog):
         self.take_photo.ImageUpdate.connect(self.ImageUpdateSlot)
 
     def capture(self):
-    # fix image size
+        # fix image size
         screenshot = QScreen.grabWindow(app.primaryScreen(), widget.winId(), 0, 0, 800, 540)
         msg = QMessageBox()
         msg.setWindowFlag(Qt.WindowStaysOnTopHint)
         msg.setIconPixmap(QPixmap(screenshot))
         msg.setText('저장 하시겠습니까?')
-        msg.setStandardButtons(QMessageBox.No|QMessageBox.Yes)
+        msg.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
         x = msg.exec_()
         if x == QMessageBox.Yes:
             name = self.name.text()
@@ -152,19 +156,22 @@ class Save(QDialog):
                 os.remove(captured_img)
                 print('warning! face not detected! : ', name)
             # client.close()
-        else: pass
+        else:
+            pass
 
     def face_rec(self):
         self.take_photo.stop()
         widget.addWidget(Face_Recognition())
-        widget.setCurrentIndex(widget.currentIndex()+1)
+        widget.setCurrentIndex(widget.currentIndex() + 1)
 
     def ImageUpdateSlot(self, Image):
         self.imgLabel.setPixmap(QPixmap.fromImage(Image))
         self.imgLabel.setScaledContents(True)
 
+
 class Take_photo(QThread):
     ImageUpdate = pyqtSignal(QImage)
+
     def run(self):
         self.ThreadActive = True
         while self.ThreadActive:
@@ -189,4 +196,3 @@ widget.addWidget(main)
 widget.setWindowFlag(Qt.WindowStaysOnTopHint)
 widget.show()
 sys.exit(app.exec_())
-
