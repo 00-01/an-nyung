@@ -189,3 +189,4 @@ widget.addWidget(main)
 widget.setWindowFlag(Qt.WindowStaysOnTopHint)
 widget.show()
 sys.exit(app.exec_())
+

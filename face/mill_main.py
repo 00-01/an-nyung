@@ -48,7 +48,6 @@ class layout_main(QMainWindow):
         self.run = False
         self.image = None
 
-
         # ---------------------------------------camera setting---------------------------------------------
         for s_os in setting["camera"]["os"]:
             if s_os in platform.platform():
@@ -64,7 +63,6 @@ class layout_main(QMainWindow):
         # debug용
         self.viewROI = setting["view"]["roi"]
         self.viewFPS = setting["view"]["fps"]
-
 
     def move_start(self):
         self.layout.addWidget(layout_start(self), 0, 0)
@@ -123,7 +121,7 @@ class layout_capture(QWidget):
         msg = QMessageBox()
         msg.setWindowFlag(Qt.WindowStaysOnTopHint)
 
-        #메세지에 띄울 사각테두리 체크된 이미지 처리
+        # 메세지에 띄울 사각테두리 체크된 이미지 처리
         tmp1 = QImage.copy(self.imgLabel.pixmap().toImage())
         frame1 = qimage2ndarray.rgb_view(tmp1)
         frame2 = cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB)
@@ -183,7 +181,6 @@ class layout_capture(QWidget):
         # capture restart
         self.take_Capture.start()
 
-
     def ImageUpdateSlot(self, Image):
         self.imgLabel.setPixmap(QPixmap.fromImage(Image))
         self.imgLabel.setScaledContents(True)
@@ -192,6 +189,7 @@ class layout_capture(QWidget):
         self.take_Capture.terminate()
         self.deleteLater()
         self.parent.move_start()
+
 
 class takeCapture(QThread):
     ImageUpdate = pyqtSignal(QImage)
@@ -207,7 +205,6 @@ class takeCapture(QThread):
             self.ImageUpdate.emit(img)
 
 
-
 class layout_recognition(QWidget):
     def __init__(self, parent):
         super(layout_recognition, self).__init__(parent)
@@ -219,14 +216,7 @@ class layout_recognition(QWidget):
         self.take_Recognition.start()
         self.take_Recognition.ImageUpdate.connect(self.ImageUpdateSlot)
 
-
-
-
         self.btn_back.clicked.connect(self.click_back)
-
-
-
-
 
     def ImageUpdateSlot(self, Image):
         self.imgLabel.setPixmap(QPixmap.fromImage(Image))
@@ -284,18 +274,13 @@ class takeRecognition(QThread):
                           (0, 0, 255), 2)
             # fps출력
             if setting["view"]["fps"]:
-                cv2.putText(frame, "fps : " + str(fps), (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+                cv2.putText(frame, "fps : " + str(fps), (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1,
+                            cv2.LINE_AA)
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             img = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
             self.ImageUpdate.emit(img)
-
-
-
-
-
-
 
 
 with open('config.json') as json_file:
@@ -317,11 +302,7 @@ names = [i['name'] for i in n]
 id = [j['id'] for j in n]
 
 
-
-
-
 def image_anlyize(q):
-
     while True:
         # 큐에 있는 frame가져와서 face_location처리
         if q:
@@ -337,6 +318,7 @@ def image_anlyize(q):
                     if face_distances[best_match_index] < setting["distance"]:
                         name = names[best_match_index]
                     print(name)
+
 
 if __name__ == '__main__':
     for _ in range(multiprocessing.cpu_count() - 1):
