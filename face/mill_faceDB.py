@@ -1,5 +1,6 @@
 import pymongo
 
+
 # DB이름 바꿨으면함 faceDB.json
 def access_db():
     client = pymongo.MongoClient()

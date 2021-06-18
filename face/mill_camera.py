@@ -1,27 +1,21 @@
-import datetime
-import json
 import multiprocessing
-import threading
+import platform
 import time
-import concurrent.futures as cf
+from multiprocessing import Process, Queue
+
 import cv2
 import face_recognition as fr
 import numpy as np
-from PyQt5.QtWidgets import QDialog
 
 from db import access_db
-from multiprocessing import Process, Queue
-import platform
-
 
 
 class camera():
     def __init__(self):
         super(camera, self).__init__()
-        self.pro_list = [] #얼굴 탐색 멀티 프로세스 리스트
+        self.pro_list = []  # 얼굴 탐색 멀티 프로세스 리스트
         self.q = None
-        
-        
+
         # config.json 값 설정용
         self.cam_dev = 0
         self.cam_cap = 0
@@ -53,13 +47,12 @@ class camera():
         self.width = setting["camera"]["roi"]["width"]
         self.height = setting["camera"]["roi"]["height"]
 
-        #debug용
+        # debug용
         self.viewROI = setting["view"]["roi"]
         self.viewFPS = setting["view"]["fps"]
 
         # ---------------------------------------distance setting---------------------------------------------
         self.distance = setting["distance"]
-
 
         # ---------------------------------------debug---------------------------------------------
         debug = setting["debug"]
@@ -99,8 +92,10 @@ class camera():
                     s = time.time()
                     # ROI
                     # 중앙에서 cap_size만큼
-                    q.put(frame[int(frame.shape[1] / 2 - self.cap_size[1] / 2): int(frame.shape[1] / 2 + self.cap_size[1] / 2),
-                          int(frame.shape[0] / 2 - self.cap_size[0] / 2): int(frame.shape[0] / 2 + self.cap_size[0] / 2)])
+                    q.put(frame[int(frame.shape[1] / 2 - self.cap_size[1] / 2): int(
+                        frame.shape[1] / 2 + self.cap_size[1] / 2),
+                          int(frame.shape[0] / 2 - self.cap_size[0] / 2): int(
+                              frame.shape[0] / 2 + self.cap_size[0] / 2)])
 
             fps = 0
             try:
@@ -116,13 +111,17 @@ class camera():
             # ROI
             if self.viewROI:
                 cv2.imshow('roi',
-                           frame[int(frame.shape[0] / 2 - self.cap_size[0] / 2): int(frame.shape[0] / 2 + self.cap_size[0] / 2),
-                           int(frame.shape[1] / 2 - self.cap_size[1] / 2): int(frame.shape[1] / 2 + self.cap_size[1] / 2)])
+                           frame[int(frame.shape[0] / 2 - self.cap_size[0] / 2): int(
+                               frame.shape[0] / 2 + self.cap_size[0] / 2),
+                           int(frame.shape[1] / 2 - self.cap_size[1] / 2): int(
+                               frame.shape[1] / 2 + self.cap_size[1] / 2)])
 
             # ROI사각형 테두리 그리기
             cv2.rectangle(frame,
-                          (int(frame.shape[1] / 2 - self.cap_size[1] / 2), int(frame.shape[0] / 2 - self.cap_size[0] / 2)),
-                          (int(frame.shape[1] / 2 + self.cap_size[1] / 2), int(frame.shape[0] / 2 + self.cap_size[0] / 2)),
+                          (int(frame.shape[1] / 2 - self.cap_size[1] / 2),
+                           int(frame.shape[0] / 2 - self.cap_size[0] / 2)),
+                          (int(frame.shape[1] / 2 + self.cap_size[1] / 2),
+                           int(frame.shape[0] / 2 + self.cap_size[0] / 2)),
                           (0, 0, 255), 2)
             # fps출력
             if self.viewFPS:
@@ -167,8 +166,8 @@ class camera():
             frame = cv2.flip(frame, 1)
             frame = frame[int(frame.shape[1] / 2 - cap_size[1] / 2): int(
                 frame.shape[1] / 2 + cap_size[1] / 2),
-            int(frame.shape[0] / 2 - cap_size[0] / 2): int(
-                frame.shape[0] / 2 + cap_size[0] / 2)]
+                    int(frame.shape[0] / 2 - cap_size[0] / 2): int(
+                        frame.shape[0] / 2 + cap_size[0] / 2)]
 
             cv2.imshow('frame', frame)
             if cv2.waitKey(1) == 27:
