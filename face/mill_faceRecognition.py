@@ -29,6 +29,7 @@ class layout_controller(tk.Tk):
             self._frame.destroy()
         self._frame = new_frame
         self._frame.pack()
+
     def programExit(self):
         if processFlag.qsize() != 0:
             for _ in range(processFlag.qsize()):
@@ -241,8 +242,6 @@ class layout_faceRecognition(tk.Frame):
 
     def programExit(self):
         self.ThreadRecognition.terminate()
-        for process in pro_list:
-            process.kill()
 
     def click_back(self):
         self.ThreadRecognition.terminate()
@@ -266,10 +265,6 @@ class ThreadRecognition():
 
     def run(self, app):
         self.flag = True
-
-        for process in pro_list:
-            process.kill()
-
         start_time = time.time()
         delay_time = time.time()
         while self.flag:
