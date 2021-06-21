@@ -29,6 +29,9 @@ class layout_controller(tk.Tk):
             self._frame.destroy()
         self._frame = new_frame
         self._frame.pack()
+    def programExit(self):
+        if self._frame != None:
+            self._frame.programExit()
 
 class layout_start(tk.Frame):
     def __init__(self, master):
@@ -42,6 +45,8 @@ class layout_start(tk.Frame):
         tk.Button(self, text="Go to page layout_faceRecognition",
                   command=lambda: master.switch_frame(layout_faceRecognition)).pack(side="bottom", expand=True,
                                                                                     fill="both")
+    def programExit(self):
+        pass
 
 class layout_faceCapture(tk.Frame):
     def __init__(self, master):
@@ -66,6 +71,10 @@ class layout_faceCapture(tk.Frame):
         # 촬영 thread 시작
         self.ThreadCapture = ThreadCapture()
         threading.Thread(target=self.ThreadCapture.run, args=(self,)).start()
+
+    def programExit(self):
+        self.ThreadCapture.terminate()
+        pass
 
     def click_save(self):
 
@@ -220,6 +229,12 @@ class layout_faceRecognition(tk.Frame):
         # 촬영 thread 시작
         self.ThreadRecognition = ThreadRecognition()
         threading.Thread(target=self.ThreadRecognition.run, args=(self,)).start()
+
+    def programExit(self):
+        self.ThreadRecognition.terminate()
+        for process in pro_list:
+            process.kill()
+        pass
 
     def click_back(self):
         self.ThreadRecognition.terminate()
@@ -376,6 +391,11 @@ cap_size = (setting["camera"]["roi"]["width"], setting["camera"]["roi"]["height"
 q = Queue()
 result = Queue()
 pro_list = []
+app = layout_controller()
+
+def programExit():
+    app.programExit()
+    app.destroy()
 
 if __name__ == "__main__":
     if setting["log"]:
@@ -383,4 +403,5 @@ if __name__ == "__main__":
         print("cam connected : " + str(cam.isOpened()))
 
     app = layout_controller()
+    app.protocol("WM_DELETE_WINDOW", on_closing)
     app.mainloop()
