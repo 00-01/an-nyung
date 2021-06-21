@@ -30,13 +30,16 @@ class layout_controller(tk.Tk):
         self._frame = new_frame
         self._frame.pack()
     def programExit(self):
+        if processFlag.qsize() != 0:
+            for _ in range(processFlag.qsize()):
+                processFlag.get()
         if self._frame != None:
             self._frame.programExit()
         if q.qsize() != 0:
-            for _ in len(q.qsize()):
+            for _ in range(q.qsize()):
                 q.get()
         if result.qsize() != 0:
-            for _ in len(result.qsize()):
+            for _ in range(result.qsize()):
                 result.get()
         cam.release()
 
@@ -267,22 +270,9 @@ class ThreadRecognition():
         for process in pro_list:
             process.kill()
 
-        for _ in range(multiprocessing.cpu_count() - 1):
-            p = Process(target=image_anlyize, args=(q, result,))
-            pro_list.append(p)
-            p.daemon = True
-            p.start()
-
         start_time = time.time()
         delay_time = time.time()
         while self.flag:
-            # 얼굴 인식 멀티 프로세스가 덜열려있는지 체크해서 계속 숫자 맞춰줌
-            if len(pro_list) < multiprocessing.cpu_count():
-                p = Process(target=image_anlyize, args=(q, result))
-                pro_list.append(p)
-                p.daemon = True
-                p.start()
-
             ret, frame = cam.read()
             if ret:
                 frame = cv2.flip(frame, 1)
@@ -344,9 +334,6 @@ class ThreadRecognition():
     def terminate(self):
         self.flag = False
 
-        for process in pro_list:
-            process.kill()
-
 
 _, _, col, error_col = access_db()
 n = list(col.find({}))
@@ -354,16 +341,13 @@ names = [i['name'] for i in n]
 id = [j['id'] for j in n]
 
 
-def image_anlyize(q, result):
-    # 멀티프로세스는 30초동안 인식된 얼굴 안들어오면 자동 종료됨
-    count = 0
-    while True:
+def image_anlyize(q, result, processFlag):
+    while processFlag.qsize() != 0:
         # 큐에 있는 frame가져와서 face_location처리
         if q.qsize() != 0:
             frame = q.get()
             face_locations = fr.face_locations(frame)
             if len(face_locations) == 1:
-                count = 0
                 face_encodings = fr.face_encodings(frame, face_locations)
                 for fe in face_encodings:
                     name = "- - -"
@@ -374,11 +358,7 @@ def image_anlyize(q, result):
                     result.put(name)
                     # print(name)
         elif q.qsize() == 0:
-            count += 1
-            if count > 20:
-                print('종료합니다.')
-                exit()
-            time.sleep(0.5)
+            time.sleep(float(1) / (multiprocessing.cpu_count() - 2))
 
 
 with open('config.json') as json_file:
@@ -396,6 +376,7 @@ cap_size = (setting["camera"]["roi"]["width"], setting["camera"]["roi"]["height"
 
 q = Queue()
 result = Queue()
+processFlag = Queue()
 pro_list = []
 app = layout_controller()
 
@@ -407,6 +388,14 @@ if __name__ == "__main__":
     if setting["log"]:
         print("cpu_count : " + str(multiprocessing.cpu_count()))
         print("cam connected : " + str(cam.isOpened()))
+    processFlag.put("1")
+    for _ in range(multiprocessing.cpu_count() - 1):
+        p = Process(target=image_anlyize, args=(q, result, processFlag, ))
+        pro_list.append(p)
+        p.start()
 
     app.protocol("WM_DELETE_WINDOW", programExit)
     app.mainloop()
+
+    for process in pro_list:
+        process.kill()
