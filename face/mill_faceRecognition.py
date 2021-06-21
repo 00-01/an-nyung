@@ -3,18 +3,16 @@ import json
 import multiprocessing
 import os
 import platform
-import signal
 import threading
 import time
 import tkinter as tk
-from multiprocessing import Queue, Process
 from datetime import datetime
+from multiprocessing import Queue, Process
 import cv2
 import face_recognition as fr
 import numpy as np
 from PIL import Image
 from PIL import ImageTk
-
 from mill_faceDB import access_db
 
 
@@ -32,7 +30,6 @@ class layout_controller(tk.Tk):
         self._frame = new_frame
         self._frame.pack()
 
-
 class layout_start(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
@@ -45,7 +42,6 @@ class layout_start(tk.Frame):
         tk.Button(self, text="Go to page layout_faceRecognition",
                   command=lambda: master.switch_frame(layout_faceRecognition)).pack(side="bottom", expand=True,
                                                                                     fill="both")
-
 
 class layout_faceCapture(tk.Frame):
     def __init__(self, master):
@@ -131,7 +127,7 @@ class layout_faceCapture(tk.Frame):
                 # os.remove(captured_img)
                 print('warning! face not detected! : ', name)
 
-            # ------------------------------db새로 불러야됨
+            # ------------------------------db새로 불러야됨--------------------------------------------------------------------
 
         # 촬영 쓰레드 재시작
         self.ThreadCapture = ThreadCapture()
@@ -204,6 +200,7 @@ class ThreadCapture():
     def terminate(self):
         self.flag = False
 
+
 class layout_faceRecognition(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
@@ -251,7 +248,7 @@ class ThreadRecognition():
             process.kill()
 
         for _ in range(multiprocessing.cpu_count() - 1):
-            p = Process(target=image_anlyize, args=(q,result,))
+            p = Process(target=image_anlyize, args=(q, result,))
             pro_list.append(p)
             p.daemon = True
             p.start()
@@ -261,12 +258,11 @@ class ThreadRecognition():
         while self.flag:
             # 얼굴 인식 멀티 프로세스가 덜열려있는지 체크해서 계속 숫자 맞춰줌
             if len(pro_list) < multiprocessing.cpu_count():
-                p = Process(target=image_anlyize, args=(q,result))
+                p = Process(target=image_anlyize, args=(q, result))
                 pro_list.append(p)
                 p.daemon = True
                 p.start()
-                
-                
+
             ret, frame = cam.read()
             if ret:
                 frame = cv2.flip(frame, 1)
@@ -302,9 +298,6 @@ class ThreadRecognition():
 
                 # ROI사각형
                 cv2.rectangle(frame,
-
-
-
                               (int(frame.shape[1] / 2 - cap_size[1] / 2), int(frame.shape[0] / 2 - cap_size[0] / 2)),
                               (int(frame.shape[1] / 2 + cap_size[1] / 2), int(frame.shape[0] / 2 + cap_size[0] / 2)),
                               (0, 0, 255), 2)
@@ -332,6 +325,7 @@ class ThreadRecognition():
         self.flag = False
         for process in pro_list:
             process.kill()
+
 
 _, _, col, error_col = access_db()
 n = list(col.find({}))
@@ -366,27 +360,6 @@ def image_anlyize(q, result):
             time.sleep(0.5)
 
 
-def resetProcess():
-    # Ask user for the name of process
-    try:
-
-        # iterating through each instance of the proess
-        for line in os.popen("ps ax | grep python | grep -v grep"):
-            fields = line.split()
-
-            # extracting Process ID from the output
-            pid = fields[0]
-
-            # terminating process
-            if int(pid) != os.getpid():
-                os.kill(int(pid), signal.SIGKILL)
-        print("Process Successfully terminated")
-
-    except:
-        print("Error Encountered while running script")
-
-
-
 with open('config.json') as json_file:
     setting = json.load(json_file)
 
@@ -404,22 +377,10 @@ q = Queue()
 result = Queue()
 pro_list = []
 
-
 if __name__ == "__main__":
-    resetProcess()
     if setting["log"]:
         print("cpu_count : " + str(multiprocessing.cpu_count()))
         print("cam connected : " + str(cam.isOpened()))
-
-    # 기존에 실행되던 process종료해야됨(python3) 본인뺴고
-    # os별로 명령어가 다름
-    # os.system("killall -9 python3")
-
-    # for _ in range(multiprocessing.cpu_count() - 1):
-    #     p = Process(target=image_anlyize, args=(q,))
-    #     pro_list.append(p)
-    #     p.start()
-    #     time.sleep(float(1) / (multiprocessing.cpu_count() - 2))
 
     app = layout_controller()
     app.mainloop()
