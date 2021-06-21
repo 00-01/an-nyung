@@ -3,6 +3,7 @@ import json
 import multiprocessing
 import os
 import platform
+import signal
 import threading
 import time
 import tkinter as tk
@@ -107,7 +108,7 @@ class layout_faceCapture(tk.Frame):
         btn = SaveCaptureDialog(self, self.name.get() + "으로 저장하시겠습니까?", tmp1).show()
         if btn:
             name = self.name.get()
-            captured_img = "tmp/" + name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
+            captured_img = "tmp/" + name + "_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
             # 인식된 이미지(얼굴만)
             frame = frame[face_crop[0]:face_crop[2], face_crop[3]:face_crop[1]]
             if not os.path.isdir("tmp"):
@@ -252,6 +253,7 @@ class ThreadRecognition():
         for _ in range(multiprocessing.cpu_count() - 1):
             p = Process(target=image_anlyize, args=(q,result,))
             pro_list.append(p)
+            p.daemon = True
             p.start()
 
         start_time = time.time()
@@ -261,6 +263,7 @@ class ThreadRecognition():
             if len(pro_list) < multiprocessing.cpu_count():
                 p = Process(target=image_anlyize, args=(q,result))
                 pro_list.append(p)
+                p.daemon = True
                 p.start()
                 
                 
@@ -363,6 +366,27 @@ def image_anlyize(q, result):
                 time.sleep(0.5)
 
 
+def resetProcess():
+    # Ask user for the name of process
+    try:
+
+        # iterating through each instance of the proess
+        for line in os.popen("ps ax | grep python | grep -v grep"):
+            fields = line.split()
+
+            # extracting Process ID from the output
+            pid = fields[0]
+
+            # terminating process
+            if int(pid) != os.getpid():
+                os.kill(int(pid), signal.SIGKILL)
+        print("Process Successfully terminated")
+
+    except:
+        print("Error Encountered while running script")
+
+
+
 with open('config.json') as json_file:
     setting = json.load(json_file)
 
@@ -382,6 +406,7 @@ pro_list = []
 
 
 if __name__ == "__main__":
+    resetProcess()
     if setting["log"]:
         print("cpu_count : " + str(multiprocessing.cpu_count()))
         print("cam connected : " + str(cam.isOpened()))
