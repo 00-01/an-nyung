@@ -32,6 +32,13 @@ class layout_controller(tk.Tk):
     def programExit(self):
         if self._frame != None:
             self._frame.programExit()
+        if q.qsize() != 0:
+            for _ in len(q.qsize()):
+                q.get()
+        if result.qsize() != 0:
+            for _ in len(result.qsize()):
+                result.get()
+        cam.release()
 
 class layout_start(tk.Frame):
     def __init__(self, master):
@@ -74,7 +81,6 @@ class layout_faceCapture(tk.Frame):
 
     def programExit(self):
         self.ThreadCapture.terminate()
-        pass
 
     def click_save(self):
 
@@ -234,7 +240,6 @@ class layout_faceRecognition(tk.Frame):
         self.ThreadRecognition.terminate()
         for process in pro_list:
             process.kill()
-        pass
 
     def click_back(self):
         self.ThreadRecognition.terminate()
@@ -338,6 +343,7 @@ class ThreadRecognition():
 
     def terminate(self):
         self.flag = False
+
         for process in pro_list:
             process.kill()
 
@@ -402,6 +408,5 @@ if __name__ == "__main__":
         print("cpu_count : " + str(multiprocessing.cpu_count()))
         print("cam connected : " + str(cam.isOpened()))
 
-    app = layout_controller()
     app.protocol("WM_DELETE_WINDOW", programExit)
     app.mainloop()
