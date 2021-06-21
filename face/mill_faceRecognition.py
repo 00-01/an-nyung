@@ -403,5 +403,5 @@ if __name__ == "__main__":
         print("cam connected : " + str(cam.isOpened()))
 
     app = layout_controller()
-    app.protocol("WM_DELETE_WINDOW", on_closing)
+    app.protocol("WM_DELETE_WINDOW", programExit)
     app.mainloop()
