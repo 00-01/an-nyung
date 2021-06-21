@@ -358,12 +358,12 @@ def image_anlyize(q, result):
                         name = names[best_match_index]
                     result.put(name)
                     # print(name)
-            elif len(face_locations) == 0:
-                count += 1
-                if count > 20:
-                    print('종료합니다.')
-                    exit()
-                time.sleep(0.5)
+        elif q.qsize() == 0:
+            count += 1
+            if count > 20:
+                print('종료합니다.')
+                exit()
+            time.sleep(0.5)
 
 
 def resetProcess():
