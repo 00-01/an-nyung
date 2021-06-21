@@ -32,8 +32,8 @@ class layout_controller(tk.Tk):
 
     def programExit(self):
         if processFlag.qsize() != 0:
-            for _ in range(processFlag.qsize()):
-                processFlag.get()
+            processFlag.get()
+
         if self._frame != None:
             self._frame.programExit()
         if q.qsize() != 0:
@@ -315,11 +315,11 @@ class ThreadRecognition():
 
             cv2.waitKey(10)
             if time.time() - delay_time > 1:
-                if result.qsize() > 3:
-                    ls = []
+                ls = []
+                for q_result in range(result.qsize()):
+                    ls.append(result.get())
+                if len(ls) != 0:
                     print("=============================start")
-                    for q_result in range(result.qsize()):
-                        ls.append(result.get())
                     print(ls)
                     print("선택결과 : ", end="")
                     print(max(ls, key=ls.count))
