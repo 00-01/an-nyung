@@ -331,6 +331,8 @@ class ThreadRecognition():
                     logShow("=============================")
                     logShow("list : " + " ".join(ls))
                     logShow("choice : " + max(ls, key=ls.count))
+                    if not debug:
+                        print("choice : " + max(ls, key=ls.count))
                     logShow("=============================")
                     delay_time = time.time()
 
@@ -395,11 +397,19 @@ try:
 except:
     log = False
 
+# 디버그 출력 유무
+try:
+    debug = setting["debug"]
+    debug = True
+except:
+    debug = False
+
 def logShow(string):
     if log:
         lg = open(datetime.now().strftime("%Y%m%d_") + setting["log"] + ".txt", "a")
         lg.write(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " :::: {}\n".format(string))
         lg.close()
+    if debug:
         print(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " :::: ", end="")
         print(string)
 
