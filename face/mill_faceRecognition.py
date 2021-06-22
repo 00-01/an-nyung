@@ -365,9 +365,8 @@ def image_anlyize(i, q, result, processFlag):
                     best_match_index = np.argmin(face_distances)
                     if face_distances[best_match_index] < setting["distance"]:
                         name = names[best_match_index]
-                    logShow(str(i) + " DB search end")
                     result.put(name)
-                    # print(name)
+                logShow(str(i) + "DB search end, search name :" + name)
         elif q.qsize() == 0:
             time.sleep(float(1) / (core_count))
 
@@ -400,8 +399,9 @@ def logShow(string):
     if log:
         lg = open(datetime.now().strftime("%Y%m%d_") + setting["log"] + ".txt", "a")
         lg.write(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " :::: {}\n".format(string))
-    print(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " :::: ", end="")
-    print(string)
+        lg.close()
+        print(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " :::: ", end="")
+        print(string)
 
 
 # 카메라 전역변수
@@ -433,8 +433,7 @@ if __name__ == "__main__":
     app.protocol("WM_DELETE_WINDOW", programExit)
     app.mainloop()
 
-    for i in range(len[pro_list]):
-        logShow(str(i) + " process kill")
-        pro_list[i].kill()
+    for process in pro_list:
+        process.kill()
 
 
