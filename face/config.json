@@ -19,7 +19,8 @@
         "roi": false,
         "fps": true
     },
+    "core" : 1,
     "distance": 0.4,
-    "log": false,
+    "log": "log",
     "debug": false
 }
