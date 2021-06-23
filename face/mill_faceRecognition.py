@@ -270,6 +270,7 @@ class ThreadRecognition():
     def __init__(self):
         self.flag = True
 
+
     def run(self, app):
         logShow("ThreadRecognition Thread run")
         self.flag = True
@@ -292,7 +293,7 @@ class ThreadRecognition():
                             frame[int(frame.shape[0] / 2 - cap_size[1] / 2): int(frame.shape[0] / 2 + cap_size[1] / 2),
                             int(frame.shape[1] / 2 - cap_size[0] / 2): int(frame.shape[1] / 2 + cap_size[0] / 2)])
                         logShow("insert q")
-                        
+                        continue
                         # q에 들어가는 frame 디버그용
                         # cv2.imshow("q Add", frame[int(frame.shape[0] / 2 - cap_size[1] / 2): int(frame.shape[0] / 2 + cap_size[1] / 2),
                         #     int(frame.shape[1] / 2 - cap_size[0] / 2): int(frame.shape[1] / 2 + cap_size[0] / 2)])
@@ -328,17 +329,24 @@ class ThreadRecognition():
                 app.change_img(frame)
 
             cv2.waitKey(10)
-            if time.time() - delay_time > 1:
+            if time.time() - delay_time > setting["delay"]:
                 ls = []
                 for q_result in range(result.qsize()):
                     ls.append(result.get())
                 if len(ls) != 0:
-                    logShow("=============================")
-                    logShow("list : " + " ".join(ls))
-                    logShow("choice : " + max(ls, key=ls.count))
+                    logShow("search list : " + " ".join(ls))
+                    logShow("search result : " + max(ls, key=ls.count))
                     if not debug:
-                        print("choice : " + max(ls, key=ls.count))
-                    logShow("=============================")
+                        print(datetime.now().strftime("%H:%M:%S") + "list : " + " ".join(ls))
+                        print(datetime.now().strftime("%H:%M:%S") + "name : " + max(ls, key=ls.count))
+
+                    if max(ls, key=ls.count) == defaultName:
+                        logShow("please try again")
+
+                    time.sleep(2)
+                    if q.qsize() != 0:
+                        for _ in range(q.qsize()):
+                            q.get()
                     delay_time = time.time()
 
     def terminate(self):
@@ -351,7 +359,7 @@ _, _, col, error_col = access_db()
 n = list(col.find({}))
 names = [i['name'] for i in n]
 id = [j['id'] for j in n]
-
+defaultName = "- - -"
 
 def image_anlyize(i, q, result, processFlag):
     logShow(str(i) + " process enter")
@@ -376,8 +384,8 @@ def image_anlyize(i, q, result, processFlag):
                 logShow(str(i) + " process face_encodings start")
                 face_encodings = fr.face_encodings(frame, face_locations)
                 logShow(str(i) + " process face_encodings end")
+                name = defaultName
                 for fe in face_encodings:
-                    name = "- - -"
                     face_distances = fr.face_distance(id, fe)
                     best_match_index = np.argmin(face_distances)
                     if face_distances[best_match_index] < setting["distance"]:
@@ -385,7 +393,7 @@ def image_anlyize(i, q, result, processFlag):
                     result.put(name)
                 logShow(str(i) + "DB search end, search name :" + name)
         elif q.qsize() == 0:
-            time.sleep(float(1) / (core_count))
+            time.sleep(0.1)
 
     logShow(str(i) + " process end")
 
