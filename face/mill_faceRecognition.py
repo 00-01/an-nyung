@@ -289,9 +289,14 @@ class ThreadRecognition():
                         # ROI
                         # 중앙에서 cap_size만큼
                         q.put(
-                            frame[int(frame.shape[1] / 2 - cap_size[1] / 2): int(frame.shape[1] / 2 + cap_size[1] / 2),
-                            int(frame.shape[0] / 2 - cap_size[0] / 2): int(frame.shape[0] / 2 + cap_size[0] / 2)])
+                            frame[int(frame.shape[0] / 2 - cap_size[1] / 2): int(frame.shape[0] / 2 + cap_size[1] / 2),
+                            int(frame.shape[1] / 2 - cap_size[0] / 2): int(frame.shape[1] / 2 + cap_size[0] / 2)])
                         logShow("insert q")
+                        
+                        # q에 들어가는 frame 디버그용
+                        # cv2.imshow("q Add", frame[int(frame.shape[0] / 2 - cap_size[1] / 2): int(frame.shape[0] / 2 + cap_size[1] / 2),
+                        #     int(frame.shape[1] / 2 - cap_size[0] / 2): int(frame.shape[1] / 2 + cap_size[0] / 2)])
+                        # cv2.waitKey(10)
 
                 fps = 0
                 try:
@@ -307,13 +312,13 @@ class ThreadRecognition():
                 if setting["view"]["roi"]:
                     cv2.imshow('roi',
                                frame[
-                               int(frame.shape[0] / 2 - cap_size[0] / 2): int(frame.shape[0] / 2 + cap_size[0] / 2),
-                               int(frame.shape[1] / 2 - cap_size[1] / 2): int(frame.shape[1] / 2 + cap_size[1] / 2)])
+                               int(frame.shape[1] / 2 - cap_size[0] / 2): int(frame.shape[0] / 2 + cap_size[1] / 2),
+                               int(frame.shape[1] / 2 - cap_size[0] / 2): int(frame.shape[0] / 2 + cap_size[1] / 2)])
 
                 # ROI사각형
                 cv2.rectangle(frame,
-                              (int(frame.shape[1] / 2 - cap_size[1] / 2), int(frame.shape[0] / 2 - cap_size[0] / 2)),
-                              (int(frame.shape[1] / 2 + cap_size[1] / 2), int(frame.shape[0] / 2 + cap_size[0] / 2)),
+                              (int(frame.shape[1] / 2 - cap_size[0] / 2), int(frame.shape[0] / 2 - cap_size[1] / 2)),
+                              (int(frame.shape[1] / 2 + cap_size[0] / 2), int(frame.shape[0] / 2 + cap_size[1] / 2)),
                               (0, 0, 255), 2)
                 # fps출력
                 if setting["view"]["fps"]:
@@ -358,6 +363,16 @@ def image_anlyize(i, q, result, processFlag):
             face_locations = fr.face_locations(frame)
             logShow(str(i) + " process face_locations end")
             if len(face_locations) == 1:
+                f1 = np.copy(frame)
+                #rectangle
+                face_crop = face_locations[0]
+                cv2.rectangle(f1,
+                              (face_crop[3], face_crop[0]),
+                              (face_crop[1], face_crop[2]),
+                              (0, 0, 255), 2)
+
+                cv2.imshow("faceRecognition", f1)
+                cv2.waitKey(10)
                 logShow(str(i) + " process face_encodings start")
                 face_encodings = fr.face_encodings(frame, face_locations)
                 logShow(str(i) + " process face_encodings end")
