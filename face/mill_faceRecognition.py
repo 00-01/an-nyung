@@ -33,15 +33,16 @@ class layout_controller(tk.Tk):
     def programExit(self):
         if processFlag.qsize() != 0:
             processFlag.get()
-
-        if self._frame != None:
-            self._frame.programExit()
         if q.qsize() != 0:
             for _ in range(q.qsize()):
                 q.get()
         if result.qsize() != 0:
             for _ in range(result.qsize()):
                 result.get()
+
+        if self._frame != None:
+            self._frame.programExit()
+
         cam.release()
 
 class layout_start(tk.Frame):
