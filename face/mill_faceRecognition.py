@@ -7,7 +7,7 @@ import threading
 import time
 import tkinter as tk
 from datetime import datetime
-from multiprocessing import Queue, Process
+from multiprocessing import Process
 
 import cv2
 import face_recognition as fr
@@ -228,6 +228,9 @@ class layout_faceRecognition(tk.Frame):
         shareResource["imageAnalizeFlag"] = 1
         self.src = None
 
+        self.information = tk.Label(self)
+        self.information.pack(side="top")
+
         # 출력할 이미지 위젯
         self.camera = tk.Label(self)
         self.camera.pack(side="top")
@@ -268,7 +271,7 @@ class ThreadRecognition():
         self.flag = True
 
     def run(self, app):
-        shareResource["imageAnalizeFlag"] = 3
+        shareResource["imageAnalizeFlag"] = 1
         logShow("ThreadRecognition Thread run")
         self.flag = True
         motionFlag = True
@@ -277,7 +280,11 @@ class ThreadRecognition():
         start_time = time.time()
         delay_time = time.time()
         display_time = time.time()
+        information_time = time.time()
         while self.flag:
+            if len(app.information.cget("text")) != 0:
+                if time.time() - information_time > setting["information"]:
+                    app.information.config(text="")
             ret, frame = cam.read()
             if ret:
                 # motion detect
@@ -291,7 +298,6 @@ class ThreadRecognition():
                 if mse_value > 30:
                     # cv2.imshow("origin", motionOriginImage)
                     # cv2.imshow("compare", motionCompareImage)
-                    logShow("움직임 감지")
                     motionFlag = True
                     shareResource["imageAnalizeFlag"] = 1
                     display_time = time.time()
@@ -301,12 +307,13 @@ class ThreadRecognition():
                     motionOriginImage = motionCompareImage
 
                 if time.time() - display_time > setting["displayOut"] and motionFlag:
-                    logShow("움직임 없음")
+                    logShow("displayOut")
                     motionFlag = False
                     shareResource["imageAnalizeFlag"] = 2
-                    time.sleep(1)
+
                     aaa = np.copy(frame)
-                    cv2.putText(aaa, "unable", (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1,
+                    aaa[:] = 0
+                    cv2.putText(aaa, "unable", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 1,
                                 cv2.LINE_AA)
                     app.change_img(aaa)
 
@@ -359,23 +366,32 @@ class ThreadRecognition():
                     cv2.putText(frame, "fps : " + str(fps), (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1,
                                 cv2.LINE_AA)
 
+                cv2.waitKey(10)
+                certification = False
+                if time.time() - delay_time > setting["delay"]:
+                    print(analizeResult.qsize())
+                    if analizeResult.qsize() != 0:
+                        ls = []
+                        for _ in range(analizeResult.qsize()):
+                            ls.append(analizeResult.get())
+                        choice = max(ls, key=ls.count)
+                        logShow("search list : " + " ".join(ls))
+                        logShow("detect name : " + choice)
+                        if not debug:
+                            print(datetime.now().strftime("%H:%M:%S") + " list : " + " ".join(ls))
+                            print(datetime.now().strftime("%H:%M:%S") + " name : " + choice)
+                        certification = True
+
+                        # get RFID MODULE
+                        app.information.config(text=choice + "님 인증되었습니다.")
+                        information_time = time.time()
+                        # choice 님 인증되었습니다.
+                        # 온도가 높습니다.
+                        # 등등 information Message 출력
+                        time.sleep(2)
+                    delay_time = time.time()
+
                 app.change_img(frame)
-
-            cv2.waitKey(10)
-            if time.time() - delay_time > setting["delay"]:
-                if analizeResult.qsize() != 0:
-                    ls = []
-                    for _ in range(analizeResult.qsize()):
-                        ls.append(analizeResult.get())
-                    choice = max(ls, key=ls.count)
-                    logShow("search list : " + " ".join(ls))
-                    logShow("detect name : " + choice)
-                    if not debug:
-                        print(datetime.now().strftime("%H:%M:%S") + " list : " + " ".join(ls))
-                        print(datetime.now().strftime("%H:%M:%S") + " name : " + choice)
-
-                    time.sleep(2)
-                delay_time = time.time()
 
     def terminate(self):
         self.flag = False
@@ -387,39 +403,39 @@ def ImageAnalize(i, shareResource, captureFrame, analizeResult):
     while shareResource["imageAnalizeFlag"] > 0:
         if shareResource["imageAnalizeFlag"] == 2:
             logShow(str(i) + " process(ImageAnalize) sleep")
-            time.sleep(1)
+            time.sleep(0.2)
             continue
         elif shareResource["imageAnalizeFlag"] == 3:
             _, _, col, error_col, names, id = mill_faceDB().access_db()
-            shareResource["imageAnalizeFlag"] == 1
+            shareResource["imageAnalizeFlag"] == 2
             continue
-        frame = captureFrame.get()
-        logShow(str(i) + " process(ImageAnalize) face_locations start")
-        face_locations = fr.face_locations(frame)
-        logShow(str(i) + " process(ImageAnalize) face_locations end")
-        if len(face_locations) == 1:
-            f1 = np.copy(frame)
-            # rectangle
-            face_crop = face_locations[0]
-            cv2.rectangle(f1,
-                          (face_crop[3], face_crop[0]),
-                          (face_crop[1], face_crop[2]),
-                          (0, 0, 255), 2)
+        try:
+            logShow(str(i) + " process(ImageAnalize) face_locations start captureFrame size = " + str(captureFrame.qsize()))
+            frame = captureFrame.get()
+            face_locations = fr.face_locations(frame)
+            logShow(str(i) + " process(ImageAnalize) face_locations end")
+            if len(face_locations) == 1:
+                f1 = np.copy(frame)
+                # rectangle
+                face_crop = face_locations[0]
+                cv2.rectangle(f1,
+                              (face_crop[3], face_crop[0]),
+                              (face_crop[1], face_crop[2]),
+                              (0, 0, 255), 2)
+                logShow(str(i) + " process(ImageAnalize) face_encodings start")
+                face_encodings = fr.face_encodings(frame, face_locations)
+                logShow(str(i) + " process(ImageAnalize) face_encodings end")
+                name = defaultName
+                for fe in face_encodings:
+                    face_distances = fr.face_distance(id, fe)
+                    best_match_index = np.argmin(face_distances)
+                    if face_distances[best_match_index] < setting["distance"]:
+                        name = names[best_match_index]
+                        analizeResult.put(name)
+                logShow(str(i) + "DB search end, search name :" + name)
+        except:
+            pass
 
-            cv2.imshow("faceRecognition", f1)
-            cv2.waitKey(10)
-            logShow(str(i) + " process(ImageAnalize) face_encodings start")
-            face_encodings = fr.face_encodings(frame, face_locations)
-            logShow(str(i) + " process(ImageAnalize) face_encodings end")
-            name = defaultName
-            for fe in face_encodings:
-                face_distances = fr.face_distance(id, fe)
-                best_match_index = np.argmin(face_distances)
-                if face_distances[best_match_index] < setting["distance"]:
-                    name = names[best_match_index]
-            if name != defaultName:
-                analizeResult.put(name)
-            logShow(str(i) + "DB search end, search name :" + name)
     logShow(str(i) + " process(ImageAnalize) end")
 
 
@@ -467,8 +483,8 @@ except:
 cam = cv2.VideoCapture(cam_num, cam_cap)
 camFlag = False
 cap_size = (setting["camera"]["roi"]["width"], setting["camera"]["roi"]["height"])
-captureFrame = Queue()
-analizeResult = Queue()
+captureFrame = multiprocessing.Queue()
+analizeResult = multiprocessing.Queue()
 pro_list = []
 defaultName = "- - -"
 app = layout_controller()

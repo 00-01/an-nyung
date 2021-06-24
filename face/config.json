@@ -19,9 +19,10 @@
         "roi": false,
         "fps": true
     },
-    "core" : 4,
+    "core" : 1,
     "distance" : 0.4,
     "delay" : 3,
     "log": "log",
-    "displayOut" : 10
+    "displayOut" : 10,
+    "information" : 5
 }

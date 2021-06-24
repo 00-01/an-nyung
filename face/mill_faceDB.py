@@ -11,10 +11,10 @@ class mill_faceDB(object):
 
     def access_db(self):
         client = pymongo.MongoClient()
-        db = client['444']
-        col = db['test_col']
-        # db = client['face_id']
-        # col = db['id']
+        # db = client['444']
+        # col = db['test_col']
+        db = client['face_id']
+        col = db['id']
         error_col = db['error']
 
         n = list(col.find({}))
