@@ -22,5 +22,6 @@
     "core" : 4,
     "distance" : 0.4,
     "delay" : 3,
-    "log": "log"
+    "log": "log",
+    "displayOut" : 10
 }

@@ -8,12 +8,14 @@ import time
 import tkinter as tk
 from datetime import datetime
 from multiprocessing import Queue, Process
+
 import cv2
 import face_recognition as fr
 import numpy as np
 from PIL import Image
 from PIL import ImageTk
-from mill_faceDB import access_db
+
+from mill_faceDB import mill_faceDB
 
 
 class layout_controller(tk.Tk):
@@ -31,19 +33,11 @@ class layout_controller(tk.Tk):
         self._frame.pack()
 
     def programExit(self):
-        if processFlag.qsize() != 0:
-            processFlag.get()
-        if q.qsize() != 0:
-            for _ in range(q.qsize()):
-                q.get()
-        if result.qsize() != 0:
-            for _ in range(result.qsize()):
-                result.get()
-
-        if self._frame != None:
+        if self._frame is not None:
             self._frame.programExit()
 
         cam.release()
+
 
 class layout_start(tk.Frame):
     def __init__(self, master):
@@ -57,8 +51,10 @@ class layout_start(tk.Frame):
         tk.Button(self, text="Go to page layout_faceRecognition",
                   command=lambda: master.switch_frame(layout_faceRecognition)).pack(side="bottom", expand=True,
                                                                                     fill="both")
+
     def programExit(self):
         pass
+
 
 class layout_faceCapture(tk.Frame):
     def __init__(self, master):
@@ -134,12 +130,13 @@ class layout_faceCapture(tk.Frame):
             logShow("save img file name : " + captured_img)
 
             # DB에 넣음
-            _, _, col, error_col = access_db()
+
             with open(captured_img, "rb") as data:
                 photo = data.read()
                 logShow("load db")
             # os.remove(captured_img)
             try:
+                _, _, col, error_col, names, id = mill_faceDB().access_db()
                 id = fr.face_encodings(fr.load_image_file(captured_img), model='large')[0]
                 data = {'name': name, 'id': id.tolist(), 'photo': photo}
                 col.insert_one(data)
@@ -155,12 +152,9 @@ class layout_faceCapture(tk.Frame):
                 print('warning! face not detected! : ', name)
                 logShow("save new db error" + name)
 
-            # ------------------------------db새로 불러야됨--------------------------------------------------------------------
-
         # 촬영 쓰레드 재시작
         self.ThreadCapture = ThreadCapture()
         threading.Thread(target=self.ThreadCapture.run, args=(self,)).start()
-
 
     def click_back(self):
         self.ThreadCapture.terminate()
@@ -249,9 +243,11 @@ class layout_faceRecognition(tk.Frame):
         threading.Thread(target=self.ThreadRecognition.run, args=(self,)).start()
 
     def programExit(self):
+        shareResource["imageAnalizeFlag"] = 1
         self.ThreadRecognition.terminate()
 
     def click_back(self):
+        shareResource["imageAnalizeFlag"] = 2
         self.ThreadRecognition.terminate()
         self.master.switch_frame(layout_start)
 
@@ -271,40 +267,77 @@ class ThreadRecognition():
     def __init__(self):
         self.flag = True
 
-
     def run(self, app):
+        shareResource["imageAnalizeFlag"] = 3
         logShow("ThreadRecognition Thread run")
         self.flag = True
+        motionFlag = True
+        motionFrameCount = 0
+        motionOriginImage = None
         start_time = time.time()
         delay_time = time.time()
+        display_time = time.time()
         while self.flag:
             ret, frame = cam.read()
             if ret:
+                # motion detect
+                motionFrameCount += 1
+                if motionOriginImage is None:
+                    motionOriginImage = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+                motionCompareImage = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                mse_value = np.sum((motionOriginImage - motionCompareImage) ** 2) / float(motionOriginImage.size)
+
+                if mse_value > 30:
+                    # cv2.imshow("origin", motionOriginImage)
+                    # cv2.imshow("compare", motionCompareImage)
+                    print("움직임감지")
+                    motionFlag = True
+                    shareResource["imageAnalizeFlag"] = 1
+                    display_time = time.time()
+
+                if motionFrameCount > 10:
+                    motionFrameCount = 0
+                    motionOriginImage = motionCompareImage
+
+
+                if time.time() - display_time > setting["displayOut"] and motionFlag:
+                    print("화면종료")
+                    motionFlag = False
+                    shareResource["imageAnalizeFlag"] = 2
+                    time.sleep(1)
+                    aaa = np.copy(frame)
+                    cv2.putText(aaa, "화면종료", (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1,
+                                cv2.LINE_AA)
+                    app.change_img(aaa)
+
+                if not motionFlag:
+                    continue
+                # ---------------------------------------light
+
                 frame = cv2.flip(frame, 1)
                 # cpu 코어 갯수 - 2개 만큼만 face_recognition돌림
                 # video capture돌아가는 1개
                 # UI cs 1개
-                if q.qsize() < core_count:
-                    dif_time = time.time() - start_time
-                    if dif_time > float(1) / (core_count):
-                        start_time = time.time()
-                        # ROI
-                        # 중앙에서 cap_size만큼
-                        q.put(
-                            frame[int(frame.shape[0] / 2 - cap_size[1] / 2): int(frame.shape[0] / 2 + cap_size[1] / 2),
-                            int(frame.shape[1] / 2 - cap_size[0] / 2): int(frame.shape[1] / 2 + cap_size[0] / 2)])
-                        logShow("insert q")
-                        continue
-                        # q에 들어가는 frame 디버그용
-                        # cv2.imshow("q Add", frame[int(frame.shape[0] / 2 - cap_size[1] / 2): int(frame.shape[0] / 2 + cap_size[1] / 2),
-                        #     int(frame.shape[1] / 2 - cap_size[0] / 2): int(frame.shape[1] / 2 + cap_size[0] / 2)])
-                        # cv2.waitKey(10)
+                if captureFrame.qsize() < core_count and time.time() - start_time > float(1) / core_count:
+                    start_time = time.time()
+                    # ROI
+                    # 중앙에서 cap_size만큼
+                    captureFrame.put(
+                        frame[int(frame.shape[0] / 2 - cap_size[1] / 2): int(frame.shape[0] / 2 + cap_size[1] / 2),
+                        int(frame.shape[1] / 2 - cap_size[0] / 2): int(frame.shape[1] / 2 + cap_size[0] / 2)])
+                    logShow("insert q")
+                    continue
+                    # q에 들어가는 frame 디버그용
+                    # cv2.imshow("q Add", frame[int(frame.shape[0] / 2 - cap_size[1] / 2): int(frame.shape[0] / 2 + cap_size[1] / 2),
+                    #     int(frame.shape[1] / 2 - cap_size[0] / 2): int(frame.shape[1] / 2 + cap_size[0] / 2)])
+                    # cv2.waitKey(10)
 
                 fps = 0
                 try:
                     pass
                     # calculate fps
-                    fps = 1 / dif_time
+                    fps = 1 / (time.time() - start_time)
                     fps = ("%.2f" % fps)
                 # print(f"fps : {fps}", '\n')
                 except:
@@ -331,74 +364,80 @@ class ThreadRecognition():
 
             cv2.waitKey(10)
             if time.time() - delay_time > setting["delay"]:
-                ls = []
-                for q_result in range(result.qsize()):
-                    ls.append(result.get())
-                if len(ls) != 0:
+                if analizeResult.qsize() != 0:
+                    ls = []
+                    for _ in range(analizeResult.qsize()):
+                        ls.append(analizeResult.get())
+                    choice = max(ls, key=ls.count)
                     logShow("search list : " + " ".join(ls))
-                    logShow("search result : " + max(ls, key=ls.count))
+                    logShow("detect name : " + choice)
                     if not debug:
-                        print(datetime.now().strftime("%H:%M:%S") + "list : " + " ".join(ls))
-                        print(datetime.now().strftime("%H:%M:%S") + "name : " + max(ls, key=ls.count))
-
-                    if max(ls, key=ls.count) == defaultName:
-                        logShow("please try again")
+                        print(datetime.now().strftime("%H:%M:%S") + " list : " + " ".join(ls))
+                        print(datetime.now().strftime("%H:%M:%S") + " name : " + choice)
 
                     time.sleep(2)
-                    if q.qsize() != 0:
-                        for _ in range(q.qsize()):
-                            q.get()
-                    delay_time = time.time()
+                delay_time = time.time()
 
     def terminate(self):
         self.flag = False
         logShow("ThreadRecognition Thread terminate")
 
 
+# _, _, col, error_col, names, id = mill_faceDB().access_db()
 
-_, _, col, error_col = access_db()
-n = list(col.find({}))
-names = [i['name'] for i in n]
-id = [j['id'] for j in n]
-defaultName = "- - -"
 
-def image_anlyize(i, q, result, processFlag):
+def ImageAnalize(i, shareResource, captureFrame, analizeResult):
     logShow(str(i) + " process enter")
-    while processFlag.qsize() != 0:
-        # 큐에 있는 frame가져와서 face_location처리
-        if q.qsize() != 0:
-            frame = q.get()
-            logShow(str(i) + " process face_locations start")
-            face_locations = fr.face_locations(frame)
-            logShow(str(i) + " process face_locations end")
-            if len(face_locations) == 1:
-                f1 = np.copy(frame)
-                #rectangle
-                face_crop = face_locations[0]
-                cv2.rectangle(f1,
-                              (face_crop[3], face_crop[0]),
-                              (face_crop[1], face_crop[2]),
-                              (0, 0, 255), 2)
+    while shareResource["imageAnalizeFlag"] > 0:
+        if shareResource["imageAnalizeFlag"] == 2:
+            logShow(str(i) + " process(ImageAnalize) sleep")
+            time.sleep(1)
+            continue
+        elif shareResource["imageAnalizeFlag"] == 3:
+            _, _, col, error_col, names, id = mill_faceDB().access_db()
+            shareResource["imageAnalizeFlag"] == 1
+            continue
+        frame = captureFrame.get()
+        logShow(str(i) + " process(ImageAnalize) face_locations start")
+        face_locations = fr.face_locations(frame)
+        logShow(str(i) + " process(ImageAnalize) face_locations end")
+        if len(face_locations) == 1:
+            f1 = np.copy(frame)
+            # rectangle
+            face_crop = face_locations[0]
+            cv2.rectangle(f1,
+                          (face_crop[3], face_crop[0]),
+                          (face_crop[1], face_crop[2]),
+                          (0, 0, 255), 2)
 
-                cv2.imshow("faceRecognition", f1)
-                cv2.waitKey(10)
-                logShow(str(i) + " process face_encodings start")
-                face_encodings = fr.face_encodings(frame, face_locations)
-                logShow(str(i) + " process face_encodings end")
-                name = defaultName
-                for fe in face_encodings:
-                    face_distances = fr.face_distance(id, fe)
-                    best_match_index = np.argmin(face_distances)
-                    if face_distances[best_match_index] < setting["distance"]:
-                        name = names[best_match_index]
-                    result.put(name)
-                logShow(str(i) + "DB search end, search name :" + name)
-        elif q.qsize() == 0:
-            time.sleep(0.1)
-
-    logShow(str(i) + " process end")
+            cv2.imshow("faceRecognition", f1)
+            cv2.waitKey(10)
+            logShow(str(i) + " process(ImageAnalize) face_encodings start")
+            face_encodings = fr.face_encodings(frame, face_locations)
+            logShow(str(i) + " process(ImageAnalize) face_encodings end")
+            name = defaultName
+            for fe in face_encodings:
+                face_distances = fr.face_distance(id, fe)
+                best_match_index = np.argmin(face_distances)
+                if face_distances[best_match_index] < setting["distance"]:
+                    name = names[best_match_index]
+            if name != defaultName:
+                analizeResult.put(name)
+            logShow(str(i) + "DB search end, search name :" + name)
+    logShow(str(i) + " process(ImageAnalize) end")
 
 
+def logShow(string):
+    if log:
+        lg = open(datetime.now().strftime("%Y%m%d_") + setting["log"] + ".txt", "a")
+        lg.write(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " :::: {}\n".format(string))
+        lg.close()
+    if debug:
+        print(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " :::: ", end="")
+        print(string)
+
+
+# ------------------------------------------------------------------------------------------------------------------
 with open('config.json') as json_file:
     setting = json.load(json_file)
 
@@ -428,46 +467,39 @@ try:
 except:
     debug = False
 
-def logShow(string):
-    if log:
-        lg = open(datetime.now().strftime("%Y%m%d_") + setting["log"] + ".txt", "a")
-        lg.write(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " :::: {}\n".format(string))
-        lg.close()
-    if debug:
-        print(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " :::: ", end="")
-        print(string)
-
-
 # 카메라 전역변수
 cam = cv2.VideoCapture(cam_num, cam_cap)
+camFlag = False
 cap_size = (setting["camera"]["roi"]["width"], setting["camera"]["roi"]["height"])
-
-q = Queue()
-result = Queue()
-processFlag = Queue()
+captureFrame = Queue()
+analizeResult = Queue()
 pro_list = []
+defaultName = "- - -"
 app = layout_controller()
+
 
 def programExit():
     app.programExit()
     app.destroy()
+
 
 if __name__ == "__main__":
     logShow("start main")
     logShow("cpu_count : " + str(core_count))
     logShow("camera connected : " + str(cam.isOpened()))
 
-    processFlag.put("1")
+    shareResource = multiprocessing.Manager().dict()
+    # imageAnalizeFlag
+    # 0 = terminate, 1 = run, 2 = sleep, 3 = db sync
+    shareResource["imageAnalizeFlag"] = 2
+
     for i in range(core_count):
         logShow(str(i) + " process start")
-        p = Process(target=image_anlyize, args=(i, q, result, processFlag, ))
+        p = Process(target=ImageAnalize, args=(i, shareResource, captureFrame, analizeResult))
         pro_list.append(p)
         p.start()
 
     app.protocol("WM_DELETE_WINDOW", programExit)
     app.mainloop()
-
     for process in pro_list:
         process.kill()
-
-
