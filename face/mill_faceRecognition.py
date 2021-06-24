@@ -122,15 +122,16 @@ class layout_faceCapture(tk.Frame):
         if btn:
             name = self.name.get()
             captured_img = "tmp/" + name + "_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
+
             # 인식된 이미지(얼굴만)
             frame = frame[face_crop[0]:face_crop[2], face_crop[3]:face_crop[1]]
             if not os.path.isdir("tmp"):
                 os.mkdir("tmp")
             cv2.imwrite(captured_img, frame)
             logShow("save img file name : " + captured_img)
+            time.sleep(0.5)
 
             # DB에 넣음
-
             with open(captured_img, "rb") as data:
                 photo = data.read()
                 logShow("load db")
@@ -141,9 +142,8 @@ class layout_faceCapture(tk.Frame):
                 data = {'name': name, 'id': id.tolist(), 'photo': photo}
                 col.insert_one(data)
 
-                # name widget text 리셋
+                # name textbox text 리셋
                 self.name.delete(0, 'end')
-
                 logShow("save new db : " + name)
 
             except IndexError:
@@ -225,7 +225,7 @@ class ThreadCapture():
 class layout_faceRecognition(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-
+        shareResource["imageAnalizeFlag"] = 1
         self.src = None
 
         # 출력할 이미지 위젯
@@ -243,7 +243,7 @@ class layout_faceRecognition(tk.Frame):
         threading.Thread(target=self.ThreadRecognition.run, args=(self,)).start()
 
     def programExit(self):
-        shareResource["imageAnalizeFlag"] = 1
+        shareResource["imageAnalizeFlag"] = 0
         self.ThreadRecognition.terminate()
 
     def click_back(self):
@@ -291,7 +291,7 @@ class ThreadRecognition():
                 if mse_value > 30:
                     # cv2.imshow("origin", motionOriginImage)
                     # cv2.imshow("compare", motionCompareImage)
-                    print("움직임감지")
+                    logShow("움직임 감지")
                     motionFlag = True
                     shareResource["imageAnalizeFlag"] = 1
                     display_time = time.time()
@@ -300,14 +300,13 @@ class ThreadRecognition():
                     motionFrameCount = 0
                     motionOriginImage = motionCompareImage
 
-
                 if time.time() - display_time > setting["displayOut"] and motionFlag:
-                    print("화면종료")
+                    logShow("움직임 없음")
                     motionFlag = False
                     shareResource["imageAnalizeFlag"] = 2
                     time.sleep(1)
                     aaa = np.copy(frame)
-                    cv2.putText(aaa, "화면종료", (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1,
+                    cv2.putText(aaa, "unable", (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1,
                                 cv2.LINE_AA)
                     app.change_img(aaa)
 
@@ -381,9 +380,6 @@ class ThreadRecognition():
     def terminate(self):
         self.flag = False
         logShow("ThreadRecognition Thread terminate")
-
-
-# _, _, col, error_col, names, id = mill_faceDB().access_db()
 
 
 def ImageAnalize(i, shareResource, captureFrame, analizeResult):
