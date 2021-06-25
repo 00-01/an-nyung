@@ -12,7 +12,7 @@ from multiprocessing import Process
 import cv2
 import face_recognition as fr
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFont, ImageDraw
 from PIL import ImageTk
 
 from mill_faceDB import mill_faceDB
@@ -319,9 +319,14 @@ class ThreadRecognition():
 
                     aaa = np.copy(frame)
                     aaa[:] = 0
-                    cv2.putText(aaa, "displayOut", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 1,
-                                cv2.LINE_AA)
-                    app.change_img(aaa)
+
+                    fontpath = "fonts/gulim.ttc"
+                    font = ImageFont.truetype(fontpath, 20)
+                    img_pil = Image.fromarray(aaa)
+                    draw = ImageDraw.Draw(img_pil)
+                    draw.text((60, 70), "움직임이 없습니다. 움직여주세요", font=font, fill=(255, 255, 255, 0))
+                    img = np.array(img_pil)
+                    app.change_img(img)
 
                 if not motionFlag:
                     continue
