@@ -324,7 +324,7 @@ class ThreadRecognition():
                     font = ImageFont.truetype(fontpath, 20)
                     img_pil = Image.fromarray(aaa)
                     draw = ImageDraw.Draw(img_pil)
-                    draw.text((60, 70), "움직임이 없습니다. 움직여주세요", font=font, fill=(255, 255, 255, 0))
+                    draw.text((60, 70), "잠시 쉬고있습니다. 움직여서 꺠워주세요.", font=font, fill=(255, 255, 255, 0))
                     img = np.array(img_pil)
                     app.change_img(img)
 
