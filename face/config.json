@@ -20,7 +20,7 @@
         "fps": true
     },
     "core" : 1,
-    "distance" : 0.4,
+    "distance" : 0.3,
     "delay" : 3,
     "log": "log",
     "displayOut" : 10,

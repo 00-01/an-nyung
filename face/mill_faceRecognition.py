@@ -30,7 +30,7 @@ class layout_controller(tk.Tk):
         if self._frame is not None:
             self._frame.destroy()
         self._frame = new_frame
-        self._frame.pack()
+        self._frame.pack(fill="both", expand=True)
 
     def programExit(self):
         if self._frame is not None:
@@ -43,14 +43,20 @@ class layout_start(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
 
-        self.background = ImageTk.PhotoImage(file="layout/background.jpg")
-        tk.Label(self, image=self.background).pack(side="top")
+        img = Image.open("layout/background.jpg")
+        # img = img.resize((master.winfo_screenwidth(), master.winfo_screenheight()), Image.ANTIALIAS)
+        self.background = ImageTk.PhotoImage(img)
+        # background = tk.Canvas(self, bd=0, highlightthickness=0)
+        # background.pack(fill="both", expand=True)
+        # background.create_image(0, 0, image=self.background)
+        # background.create_text(150, 100, text="테스트입니다.", font=("나눔고딕코딩",20), fill="red")
+
+        tk.Label(self, image=self.background).pack(side="top", expand="true", fill="both")
 
         tk.Button(self, text="Go to page layout_faceCapture",
-                  command=lambda: master.switch_frame(layout_faceCapture)).pack(side="bottom", expand=True, fill="both")
+                  command=lambda: master.switch_frame(layout_faceCapture)).pack(side="bottom", fill="both")
         tk.Button(self, text="Go to page layout_faceRecognition",
-                  command=lambda: master.switch_frame(layout_faceRecognition)).pack(side="bottom", expand=True,
-                                                                                    fill="both")
+                  command=lambda: master.switch_frame(layout_faceRecognition)).pack(side="bottom", fill="both")
 
     def programExit(self):
         pass
@@ -162,7 +168,7 @@ class layout_faceCapture(tk.Frame):
 
     def change_img(self, img):  # 레이블의 이미지 변경
         try:
-            img = cv2.resize(img, (640, 400))
+            # img = cv2.resize(img, (640, 400))
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             img = Image.fromarray(img)
             self.src = ImageTk.PhotoImage(image=img)
@@ -225,7 +231,6 @@ class ThreadCapture():
 class layout_faceRecognition(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        shareResource["imageAnalizeFlag"] = 1
         self.src = None
 
         self.information = tk.Label(self)
@@ -271,7 +276,7 @@ class ThreadRecognition():
         self.flag = True
 
     def run(self, app):
-        shareResource["imageAnalizeFlag"] = 1
+        shareResource["imageAnalizeFlag"] = 4
         logShow("ThreadRecognition Thread run")
         self.flag = True
         motionFlag = True
@@ -299,7 +304,8 @@ class ThreadRecognition():
                     # cv2.imshow("origin", motionOriginImage)
                     # cv2.imshow("compare", motionCompareImage)
                     motionFlag = True
-                    shareResource["imageAnalizeFlag"] = 1
+                    if shareResource["imageAnalizeFlag"] == 2:
+                        shareResource["imageAnalizeFlag"] = 1
                     display_time = time.time()
 
                 if motionFrameCount > 10:
@@ -313,7 +319,7 @@ class ThreadRecognition():
 
                     aaa = np.copy(frame)
                     aaa[:] = 0
-                    cv2.putText(aaa, "unable", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 1,
+                    cv2.putText(aaa, "displayOut", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 1,
                                 cv2.LINE_AA)
                     app.change_img(aaa)
 
@@ -384,11 +390,16 @@ class ThreadRecognition():
 
                         # get RFID MODULE
                         app.information.config(text=choice + "님 인증되었습니다.")
+                        display_time = time.time()
                         information_time = time.time()
                         # choice 님 인증되었습니다.
                         # 온도가 높습니다.
                         # 등등 information Message 출력
                         time.sleep(2)
+                        while captureFrame.qsize() != 0:
+                            captureFrame.get()
+                        while analizeResult.qsize() != 0:
+                            analizeResult.get()
                     delay_time = time.time()
 
                 app.change_img(frame)
@@ -400,41 +411,49 @@ class ThreadRecognition():
 
 def ImageAnalize(i, shareResource, captureFrame, analizeResult):
     logShow(str(i) + " process enter")
+    # 1 = run, 2 = sleep
+    flag = 2
     while shareResource["imageAnalizeFlag"] > 0:
-        if shareResource["imageAnalizeFlag"] == 2:
+        if shareResource["imageAnalizeFlag"] == 1:
+            flag = 1
+        elif shareResource["imageAnalizeFlag"] == 2:
+            flag = 2
+        elif shareResource["imageAnalizeFlag"] == 3:
+            _, _, col, error_col, names, id = mill_faceDB().access_db()
+            flag = 2
+        elif shareResource["imageAnalizeFlag"] == 4:
+            _, _, col, error_col, names, id = mill_faceDB().access_db()
+            flag = 1
+        if flag == 2:
             logShow(str(i) + " process(ImageAnalize) sleep")
             time.sleep(0.2)
             continue
-        elif shareResource["imageAnalizeFlag"] == 3:
-            _, _, col, error_col, names, id = mill_faceDB().access_db()
-            shareResource["imageAnalizeFlag"] == 2
-            continue
-        try:
-            logShow(str(i) + " process(ImageAnalize) face_locations start captureFrame size = " + str(captureFrame.qsize()))
-            frame = captureFrame.get()
-            face_locations = fr.face_locations(frame)
-            logShow(str(i) + " process(ImageAnalize) face_locations end")
-            if len(face_locations) == 1:
-                f1 = np.copy(frame)
-                # rectangle
-                face_crop = face_locations[0]
-                cv2.rectangle(f1,
-                              (face_crop[3], face_crop[0]),
-                              (face_crop[1], face_crop[2]),
-                              (0, 0, 255), 2)
-                logShow(str(i) + " process(ImageAnalize) face_encodings start")
-                face_encodings = fr.face_encodings(frame, face_locations)
-                logShow(str(i) + " process(ImageAnalize) face_encodings end")
-                name = defaultName
-                for fe in face_encodings:
-                    face_distances = fr.face_distance(id, fe)
-                    best_match_index = np.argmin(face_distances)
-                    if face_distances[best_match_index] < setting["distance"]:
-                        name = names[best_match_index]
-                        analizeResult.put(name)
-                logShow(str(i) + "DB search end, search name :" + name)
-        except:
-            pass
+        # try:
+        logShow(str(i) + " process(ImageAnalize) face_locations start captureFrame size = " + str(captureFrame.qsize()))
+        frame = captureFrame.get()
+        face_locations = fr.face_locations(frame)
+        logShow(str(i) + " process(ImageAnalize) face_locations end")
+        if len(face_locations) == 1:
+            f1 = np.copy(frame)
+            # rectangle
+            face_crop = face_locations[0]
+            cv2.rectangle(f1,
+                          (face_crop[3], face_crop[0]),
+                          (face_crop[1], face_crop[2]),
+                          (0, 0, 255), 2)
+            logShow(str(i) + " process(ImageAnalize) face_encodings start")
+            face_encodings = fr.face_encodings(frame, face_locations)
+            logShow(str(i) + " process(ImageAnalize) face_encodings end")
+            name = defaultName
+            for fe in face_encodings:
+                face_distances = fr.face_distance(id, fe)
+                best_match_index = np.argmin(face_distances)
+                if face_distances[best_match_index] < setting["distance"]:
+                    name = names[best_match_index]
+                    analizeResult.put(name)
+            logShow(str(i) + "DB search end, search name :" + name)
+        # except:
+        #     pass
 
     logShow(str(i) + " process(ImageAnalize) end")
 
@@ -502,8 +521,8 @@ if __name__ == "__main__":
 
     shareResource = multiprocessing.Manager().dict()
     # imageAnalizeFlag
-    # 0 = terminate, 1 = run, 2 = sleep, 3 = db sync
-    shareResource["imageAnalizeFlag"] = 2
+    # 0 = terminate, 1 = run, 2 = sleep, 3 = db sync > sleep, 4 = db sync > run
+    shareResource["imageAnalizeFlag"] = 3
 
     for i in range(core_count):
         logShow(str(i) + " process start")
@@ -511,7 +530,11 @@ if __name__ == "__main__":
         pro_list.append(p)
         p.start()
 
+    # app.attributes("-fullscreen", True)
+    app.bind("<F11>", lambda event: app.attributes(
+        "-fullscreen", not app.attributes("-fullscreen")))
     app.protocol("WM_DELETE_WINDOW", programExit)
     app.mainloop()
+
     for process in pro_list:
         process.kill()
