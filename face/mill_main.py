@@ -5,7 +5,6 @@ import os
 import platform
 import sys
 import time
-import tkinter.messagebox
 from multiprocessing import Process, Queue
 
 import cv2
@@ -145,8 +144,6 @@ class layout_capture(QWidget):
                       (face_crop[3], face_crop[0]),
                       (face_crop[1], face_crop[2]),
                       (0, 0, 255), 2)
-
-
 
         # msg.setIconPixmap(self.imgLabel.pixmap())
         msg.setIconPixmap(QPixmap.fromImage(QImage(tmp1.data, tmp1.shape[1], tmp1.shape[0], QImage.Format_RGB888)))

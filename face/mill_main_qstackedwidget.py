@@ -16,7 +16,7 @@ from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtWidgets import QStackedWidget, QMessageBox, QApplication, QWidget, QMainWindow
 from PyQt5.uic import loadUi
 
-from face.mill_faceDB import access_db
+from mill_faceDB import access_db
 
 
 class layout_main(QMainWindow):
@@ -24,16 +24,14 @@ class layout_main(QMainWindow):
         super().__init__()
 
         self.widget = QStackedWidget()
-        self.widget.addWidget(layout_start())
-        self.widget.addWidget(layout_capture())
-        self.widget.addWidget(layout_recognition())
+        self.widget.addWidget(layout_start(self))
+        self.widget.addWidget(layout_capture(self))
+        self.widget.addWidget(layout_recognition(self))
 
         # config.json 값 설정용
         self.cam_num = 0
         self.cam_cap = 0
-
         self.cam_dev = 0
-        self.cam_cap = 0
         self.distance = 0
         self.viewROI = False
         self.viewFPS = False
@@ -262,7 +260,6 @@ class takeRecognition(QThread):
                 cv2.imshow('roi',
                            frame[int(frame.shape[0] / 2 - cap_size[0] / 2): int(frame.shape[0] / 2 + cap_size[0] / 2),
                            int(frame.shape[1] / 2 - cap_size[1] / 2): int(frame.shape[1] / 2 + cap_size[1] / 2)])
-
             # ROI사각형
             cv2.rectangle(frame,
                           (int(frame.shape[1] / 2 - cap_size[1] / 2), int(frame.shape[0] / 2 - cap_size[0] / 2)),
@@ -277,7 +274,6 @@ class takeRecognition(QThread):
 
             img = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
             self.ImageUpdate.emit(img)
-
 
 with open('config.json') as json_file:
     setting = json.load(json_file)
@@ -296,7 +292,6 @@ _, _, col, error_col = access_db()
 n = list(col.find({}))
 names = [i['name'] for i in n]
 id = [j['id'] for j in n]
-
 
 def image_anlyize(q):
     while True:
@@ -324,6 +319,5 @@ if __name__ == '__main__':
         time.sleep(float(1) / (multiprocessing.cpu_count() - 2))
     app = QApplication(sys.argv)
     myWindow = layout_main()
-
     myWindow.show()
     app.exec_()
