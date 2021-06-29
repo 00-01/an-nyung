@@ -63,7 +63,7 @@ class layout_start(tk.Frame):
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             if setting_fullscreen:
                 img = cv2.resize(img, (master.winfo_screenwidth(), master.winfo_screenheight()))
-            font = ImageFont.truetype(setting_fontPath, 20)
+
             img_pil = Image.fromarray(img)
             draw = ImageDraw.Draw(img_pil)
             draw.text((150, 500), "아래 해당되는 숫자를 입력해주세요. 1, 2, 3", font=font, fill=(255, 255, 255, 0))
@@ -245,7 +245,6 @@ class layout_faceCapture(tk.Frame):
         # 0 : normal
         # 1 : err   /back = yellow, fontcolor = red
         # 2 : success
-        font = ImageFont.truetype(setting_fontPath, 20)
         if flag == 0:
             pass
 
@@ -389,7 +388,6 @@ class layout_faceRecognition(tk.Frame):
         # 0 : normal
         # 1 : err   /back = yellow, fontcolor = red
         # 2 : success
-        font = ImageFont.truetype(setting_fontPath, 20)
         if flag == 0:
             pass
 
@@ -475,7 +473,6 @@ class ThreadRecognition():
                     canvas = np.copy(frame)
                     canvas[:] = 0
                     fontpath = "fonts/gulim.ttc"
-                    font = ImageFont.truetype(fontpath, 20)
                     img_pil = Image.fromarray(canvas)
                     draw = ImageDraw.Draw(img_pil)
                     draw.text((60, 70), "잠시 쉬고있습니다. 움직여서 깨워주세요.", font=font, fill=(255, 255, 255, 0))
@@ -668,7 +665,7 @@ try:
 except:
     setting_debug = False
 
-setting_fontPath = setting["fontpath"]
+font = ImageFont.truetype(setting["fontpath"], 20)
 setting_fullscreen = setting["fullscreen"]
 setting_cap_size = (setting["camera"]["roi"]["width"], setting["camera"]["roi"]["height"])
 setting_view_fps = setting["view"]["fps"]
