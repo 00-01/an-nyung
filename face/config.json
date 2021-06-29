@@ -1,28 +1,33 @@
 {
-    "camera": {
-        "os": {
-            "Window":{
-                "dev": 0,
-                "cap": 700
+    "camera" : {
+        "os" : {
+            "Window" :{
+                "dev" : 0,
+                "cap" : 700
             },
-            "Linux":{
-                "dev": "/dev/video0",
-                "cap": 200
+            "Linux" :{
+                "dev" : "/dev/video0",
+                "cap" : 200
             }
         },
-        "roi": {
-            "width":300,
-            "height":200
+        "roi" : {
+            "width" : 300,
+            "height" : 200
         }
     },
-    "view": {
-        "roi": false,
-        "fps": true
+    "view" : {
+        "roi" : false,
+        "fps" : true
     },
+    "fontpath" : "fonts/H2GTRM.ttf",
+    "fullscreen" : true,
     "core" : 1,
-    "distance" : 0.3,
-    "delay" : 3,
-    "log": "log",
-    "displayOut" : 10,
-    "information" : 5
+    "threshold" : 0.3,
+    "log": false,
+    "debug": false,
+    "displayoutTime" : 10,
+    "informationTime" : 3,
+    "collectTime" : 3,
+    "signTime" : 3,
+    "viewType" : 2
 }

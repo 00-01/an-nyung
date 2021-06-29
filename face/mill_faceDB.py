@@ -1,7 +1,6 @@
 import pymongo
 
 
-# DB이름 바꿨으면함 faceDB.json
 class mill_faceDB(object):
     def __new__(cls):
         if not hasattr(cls,'instance'):
